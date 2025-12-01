@@ -1,0 +1,99 @@
+{
+  "tasks": {
+    "周一": {
+      "description": "周一执行的任务",
+      "time_slot_1": "18:30-21:00",
+      "court_1": 3,
+      "users_slot_1": [
+        {
+          "name": "李晨",
+          "student_id": "0221113001",
+          "phone_number": "13856234890"
+        }
+      ],
+      "time_slot_2": "21:00-22:30",
+      "court_2": 3,
+      "users_slot_2": [
+        {
+          "name": "张可欣",
+          "student_id": "0231113004",
+          "phone_number": "18602749931"
+        }
+      ]
+    },
+    "周三": {
+      "description": "周三执行的任务",
+      "time_slot_1": "18:30-20:30",
+      "court_1": 4,
+      "users_slot_1": [
+        {
+          "name": "王泽宇",
+          "student_id": "0241113012",
+          "phone_number": "15193462087"
+        }
+      ],
+      "time_slot_2": "20:30-22:30",
+      "court_2": 4,
+      "users_slot_2": [
+        {
+          "name": "陈思雨",
+          "student_id": "0251113008",
+          "phone_number": "17845306672"
+        }
+      ]
+    },
+    "周五": {
+      "description": "周五执行的任务",
+      "time_slot": "21:00-22:30",
+      "court": 3,
+      "users": [
+        {
+          "name": "赵一帆",
+          "student_id": "0221113016",
+          "phone_number": "15973625110"
+        }
+      ]
+    },
+    "周六": {
+      "description": "周六执行的任务",
+      "time_slot_1": "18-20",
+      "court_1": 4,
+      "users_slot_1": [
+        {
+          "name": "刘嘉宁",
+          "student_id": "0241113023",
+          "phone_number": "13280547996"
+        }
+      ],
+      "time_slot_2": "20-22:30",
+      "court_2": 4,
+      "users_slot_2": [
+        {
+          "name": "周楚涵",
+          "student_id": "0231113027",
+          "phone_number": "18752916403"
+        }
+      ]
+    },
+    "周日": {
+      "description": "周日执行的任务",
+      "time_slot_1": "18：00-20：00",
+      "court_1": 1,
+      "users_slot_1": [
+        {
+          "name": "孙梓墨",
+          "student_id": "0251113034",
+          "phone_number": "13580469271"
+        }
+      ],
+      "time_slot_2": "20：00-22：30",
+      "court_2": 1,
+      "users_slot_2": []
+    }
+  },
+  "execution_schedule": {
+    "周一": ["周一"],
+    "周三": ["周三"],
+    "周五": ["周五", "周六", "周日"]
+  }
+}
