@@ -22,16 +22,20 @@ on:
         - 周三
         - 周五
 
+  # 添加推送触发便于测试
+  push:
+    branches: [ main ]
+
 jobs:
   book-courts:
     runs-on: ubuntu-latest
     
     steps:
     - name: 检出代码
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4  # 也更新到v4
     
     - name: 设置Python环境
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5  # 更新到v5
       with:
         python-version: '3.10'
     
@@ -66,11 +70,23 @@ jobs:
     - name: 执行预约任务
       run: |
         echo "开始执行预约任务..."
+        echo "当前时间: $(date)"
+        echo "当前目录: $(pwd)"
+        echo "文件列表:"
+        ls -la
+        
+        # 显示配置文件内容
+        echo "=== 配置文件内容 ==="
+        cat config.json
+        
+        # 运行主程序
         python main.py
+        
+        echo "任务执行完成"
     
     - name: 上传执行结果
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # 更新到v4
       with:
         name: booking-results
         path: |
