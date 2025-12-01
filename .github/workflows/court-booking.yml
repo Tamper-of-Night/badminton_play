@@ -1,28 +1,20 @@
 name: Court Booking System
 
 on:
-  # 每周一、三、五的中午12:00执行（UTC时间，对应北京时间20:00）
-  # 如果你希望在北京时间12:00执行，需要改为UTC时间4:00
   schedule:
-    - cron: '0 4 * * 1'  # 周一 04:00 UTC = 周一 12:00 北京时间
-    - cron: '0 4 * * 3'  # 周三 04:00 UTC = 周三 12:00 北京时间
-    - cron: '0 4 * * 5'  # 周五 04:00 UTC = 周五 12:00 北京时间
+    - cron: '0 4 * * 1'  # 周一 12:00 北京时间
+    - cron: '0 4 * * 3'  # 周三 12:00 北京时间
+    - cron: '0 4 * * 5'  # 周五 12:00 北京时间
   
-  # 允许手动触发测试
   workflow_dispatch:
     inputs:
       test_day:
-        description: '测试日期（周一/周三/周五）'
+        description: '测试日期'
         required: false
         default: 'auto'
         type: choice
-        options:
-        - auto
-        - 周一
-        - 周三
-        - 周五
+        options: [auto, 周一, 周三, 周五]
 
-  # 添加推送触发便于测试
   push:
     branches: [ main ]
 
@@ -32,64 +24,156 @@ jobs:
     
     steps:
     - name: 检出代码
-      uses: actions/checkout@v4  # 也更新到v4
+      uses: actions/checkout@v4
     
     - name: 设置Python环境
-      uses: actions/setup-python@v5  # 更新到v5
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
     
     - name: 安装Chrome和Chromedriver
       run: |
-        # 安装Chrome
+        echo "=== 开始安装浏览器环境 ==="
+        
+        # 安装必要工具
         sudo apt-get update
-        sudo apt-get install -y wget
+        sudo apt-get install -y wget unzip
         
-        # 下载并安装Chrome
-        wget -q -O google-chrome-stable_current_amd64.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get install -f -y
+        echo "1. 安装Chrome..."
+        # 安装Chrome稳定版
+        wget -q -O chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo apt-get install -y ./chrome.deb
+        rm chrome.deb
         
-        # 获取Chrome版本并安装对应Chromedriver
-        CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1)
+        # 获取Chrome版本
+        CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
         echo "Chrome版本: $CHROME_VERSION"
         
-        # 下载对应版本的Chromedriver
-        wget -q "https://storage.googleapis.com/chrome-for-testing-public/$CHROME_VERSION.0.0/linux64/chromedriver-linux64.zip"
+        echo "2. 安装Chromedriver..."
+        # 方法1：尝试下载对应版本
+        CHROME_MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d'.' -f1)
+        echo "尝试下载Chromedriver版本: $CHROME_MAJOR_VERSION"
+        
+        # 先尝试官方源
+        if wget -q "https://storage.googleapis.com/chrome-for-testing-public/$CHROME_MAJOR_VERSION.0.0/linux64/chromedriver-linux64.zip"; then
+            echo "成功下载对应版本的Chromedriver"
+        else
+            echo "对应版本不可用，尝试备用方案..."
+            # 备用方案：使用固定稳定版本
+            FIXED_VERSION="120.0.6099.109"
+            echo "使用固定版本: $FIXED_VERSION"
+            wget -q "https://storage.googleapis.com/chrome-for-testing-public/$FIXED_VERSION/linux64/chromedriver-linux64.zip" || \
+            wget -q "https://chromedriver.storage.googleapis.com/$FIXED_VERSION/chromedriver_linux64.zip" -O chromedriver-linux64.zip
+        fi
+        
+        # 解压并安装
         unzip -o chromedriver-linux64.zip
-        sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
+        if [ -d "chromedriver-linux64" ]; then
+            sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
+        else
+            # 如果是旧格式
+            sudo mv chromedriver /usr/local/bin/
+        fi
         sudo chmod +x /usr/local/bin/chromedriver
         
-        # 验证安装
+        echo "3. 验证安装..."
         google-chrome --version
         chromedriver --version
+        
+        echo "=== 浏览器环境安装完成 ==="
     
     - name: 安装Python依赖
       run: |
         pip install selenium
     
+    - name: 创建测试脚本
+      run: |
+        echo "=== 创建测试脚本 ==="
+        cat > test_selenium.py << 'EOF'
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+try:
+    print("开始测试Selenium...")
+    
+    # 配置Chrome选项
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    
+    print("创建Chrome驱动...")
+    driver = webdriver.Chrome(options=chrome_options)
+    
+    print("访问测试页面...")
+    driver.get("https://www.google.com")
+    
+    print(f"页面标题: {driver.title}")
+    print("Selenium测试成功!")
+    
+    driver.quit()
+    print("浏览器已关闭")
+    
+except Exception as e:
+    print(f"测试失败: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    exit(1)
+EOF
+    
+    - name: 测试Selenium基础功能
+      run: |
+        echo "=== 测试Selenium ==="
+        python test_selenium.py
+    
     - name: 执行预约任务
       run: |
-        echo "开始执行预约任务..."
+        echo "=== 开始执行预约任务 ==="
         echo "当前时间: $(date)"
         echo "当前目录: $(pwd)"
         echo "文件列表:"
         ls -la
         
-        # 显示配置文件内容
-        echo "=== 配置文件内容 ==="
-        cat config.json
+        # 创建日志目录
+        mkdir -p logs
         
-        # 运行主程序
-        python main.py
+        echo "=== 检查配置文件 ==="
+        if [ -f "config.json" ]; then
+            echo "配置文件存在"
+            head -50 config.json
+        else
+            echo "错误: 配置文件不存在"
+            exit 1
+        fi
         
-        echo "任务执行完成"
+        echo "=== 检查主程序 ==="
+        if [ -f "main.py" ]; then
+            echo "主程序存在"
+            # 显示前几行
+            head -30 main.py | grep -E "(def|class|import)"
+        else
+            echo "错误: 主程序不存在"
+            exit 1
+        fi
+        
+        echo "=== 执行主程序 ==="
+        # 执行并记录日志
+        python main.py 2>&1 | tee logs/execution_$(date +%Y%m%d_%H%M%S).log
+        
+        echo "=== 任务执行完成 ==="
     
     - name: 上传执行结果
       if: always()
-      uses: actions/upload-artifact@v4  # 更新到v4
+      uses: actions/upload-artifact@v4
       with:
-        name: booking-results
+        name: booking-results-${{ github.run_id }}
         path: |
           *.png
-          *.log
+          logs/
+          test_selenium.py
         retention-days: 7
