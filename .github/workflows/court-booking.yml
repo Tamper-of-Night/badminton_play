@@ -1,0 +1,79 @@
+name: Court Booking System
+
+on:
+  # 每周一、三、五的中午12:00执行（UTC时间，对应北京时间20:00）
+  # 如果你希望在北京时间12:00执行，需要改为UTC时间4:00
+  schedule:
+    - cron: '0 4 * * 1'  # 周一 04:00 UTC = 周一 12:00 北京时间
+    - cron: '0 4 * * 3'  # 周三 04:00 UTC = 周三 12:00 北京时间
+    - cron: '0 4 * * 5'  # 周五 04:00 UTC = 周五 12:00 北京时间
+  
+  # 允许手动触发测试
+  workflow_dispatch:
+    inputs:
+      test_day:
+        description: '测试日期（周一/周三/周五）'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+        - auto
+        - 周一
+        - 周三
+        - 周五
+
+jobs:
+  book-courts:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v3
+    
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: 安装Chrome和Chromedriver
+      run: |
+        # 安装Chrome
+        sudo apt-get update
+        sudo apt-get install -y wget
+        
+        # 下载并安装Chrome
+        wget -q -O google-chrome-stable_current_amd64.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get install -f -y
+        
+        # 获取Chrome版本并安装对应Chromedriver
+        CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1)
+        echo "Chrome版本: $CHROME_VERSION"
+        
+        # 下载对应版本的Chromedriver
+        wget -q "https://storage.googleapis.com/chrome-for-testing-public/$CHROME_VERSION.0.0/linux64/chromedriver-linux64.zip"
+        unzip -o chromedriver-linux64.zip
+        sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
+        sudo chmod +x /usr/local/bin/chromedriver
+        
+        # 验证安装
+        google-chrome --version
+        chromedriver --version
+    
+    - name: 安装Python依赖
+      run: |
+        pip install selenium
+    
+    - name: 执行预约任务
+      run: |
+        echo "开始执行预约任务..."
+        python main.py
+    
+    - name: 上传执行结果
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: booking-results
+        path: |
+          *.png
+          *.log
+        retention-days: 7
